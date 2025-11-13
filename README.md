@@ -28,14 +28,6 @@ La aplicación **NO permitirá** terminar procesos críticos como:
 - Windows: `system`, `csrss.exe`, `lsass.exe`, `services.exe`, etc.
 - Linux: `systemd`, `init`, `kthreadd`, `dbus-daemon`, etc.
 
-### Benchmarks (Intel i5, 16GB RAM, ~150 procesos)
-
-- **Tiempo de inicio**: < 1 segundo
-- **Uso de RAM**: ~40-60 MB
-- **Uso de CPU en reposo**: 2-4%
-- **Tiempo de actualización**: ~50-100ms
-- **Tiempo de respuesta UI**: < 20ms
-
 ### Conceptos Aplicados
 - ✅ Programación orientada a objetos
 - ✅ Threading y concurrencia
@@ -43,5 +35,12 @@ La aplicación **NO permitirá** terminar procesos críticos como:
 - ✅ Patrones de diseño (Observer, Singleton)
 - ✅ Optimización de rendimiento
 - ✅ Programación multiplataforma
+
+## Scripts
+```bash
+pip install -r requirements.txt  # instalar dependencias
+python main.py                    # ejecutar aplicación
+python test_monitor.py           # ejecutar pruebas del monitor
+```
 
  
