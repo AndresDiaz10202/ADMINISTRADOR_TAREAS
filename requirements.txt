@@ -1,0 +1,12 @@
+# Administrador de Tareas Multiplataforma
+# Dependencias del proyecto
+
+# Interfaz gráfica moderna
+customtkinter>=5.2.0
+
+# Monitoreo del sistema (Windows, Linux, macOS)
+psutil>=5.9.0
+
+# Opcional: Para gráficos avanzados (futuras extensiones)
+# matplotlib>=3.7.0
+# plotly>=5.14.0
