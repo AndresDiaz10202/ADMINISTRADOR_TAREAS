@@ -7,6 +7,7 @@ Compatible: Windows, Linux, macOS
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from system_monitor import SystemMonitor, ProcessInfo
+from ai_assistant import AIAssistant, ProcessAnomaly, SystemInsight
 import platform
 import psutil
 import time
@@ -25,7 +26,10 @@ class TaskManagerApp(ctk.CTk):
     
         # Monitor del sistema
         self.monitor = SystemMonitor(update_interval=10.0)  # 10 SEGUNDOS
-        
+
+        # Asistente IA para análisis de anomalías
+        self.ai_assistant = AIAssistant()
+
         # Configuración de la ventana
         os_name = platform.system()
         self.title(f"⚡ Administrador de Tareas - {os_name}")
@@ -151,6 +155,9 @@ class TaskManagerApp(ctk.CTk):
         # Actualizar historial y gráficos
         self._update_history_graphs(cpu, ram)
 
+        # Actualizar asistente IA con análisis de anomalías
+        self._update_ai_assistant(stats)
+
         # Solo actualizar lista si auto-refresh está activado
         if self.auto_refresh_enabled:
             self._update_process_display()
@@ -159,7 +166,7 @@ class TaskManagerApp(ctk.CTk):
         """Panel lateral con métricas"""
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, rowspan=3, sticky="nsew")
-        self.sidebar.grid_rowconfigure(12, weight=1)
+        self.sidebar.grid_rowconfigure(14, weight=1)  # Actualizado para nueva fila
         
         # Logo con emoji de SO
         os_emoji = {
@@ -235,14 +242,40 @@ class TaskManagerApp(ctk.CTk):
         self.ram_graph_frame = ctk.CTkFrame(ram_graph_container, height=60, fg_color="#0f172a", corner_radius=8)
         self.ram_graph_frame.pack(fill="x", pady=(2, 0))
         self.ram_bars = []
-        
+
+        # 🤖 PANEL DE ASISTENTE IA
+        ai_header = ctk.CTkLabel(
+            self.sidebar,
+            text="🤖 Asistente IA",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        ai_header.grid(row=8, column=0, padx=20, pady=(15, 5))
+
+        # Frame scrollable para insights y recomendaciones
+        self.insights_frame = ctk.CTkScrollableFrame(
+            self.sidebar,
+            height=150,
+            fg_color="#1a1f2e",
+            corner_radius=8
+        )
+        self.insights_frame.grid(row=9, column=0, padx=20, pady=(0, 10), sticky="ew")
+
+        # Placeholder inicial
+        self.insights_placeholder = ctk.CTkLabel(
+            self.insights_frame,
+            text="Analizando patrones...",
+            font=ctk.CTkFont(size=11),
+            text_color="gray"
+        )
+        self.insights_placeholder.pack(pady=10)
+
         # Contador de procesos
         self.process_count_label = ctk.CTkLabel(
             self.sidebar,
             text="Procesos: 0",
             font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.process_count_label.grid(row=8, column=0, padx=20, pady=10)
+        self.process_count_label.grid(row=10, column=0, padx=20, pady=10)
 
         # Botón actualizar
         self.refresh_btn = ctk.CTkButton(
@@ -252,7 +285,7 @@ class TaskManagerApp(ctk.CTk):
             fg_color="#2563eb",
             hover_color="#1d4ed8"
         )
-        self.refresh_btn.grid(row=9, column=0, padx=20, pady=10)
+        self.refresh_btn.grid(row=11, column=0, padx=20, pady=10)
 
         # Toggle de tema
         self.theme_switch = ctk.CTkSwitch(
@@ -262,7 +295,7 @@ class TaskManagerApp(ctk.CTk):
             onvalue="dark",
             offvalue="light"
         )
-        self.theme_switch.grid(row=10, column=0, padx=20, pady=(10, 5))
+        self.theme_switch.grid(row=12, column=0, padx=20, pady=(10, 5))
         self.theme_switch.select()  # Dark por defecto
 
         # Toggle de auto-actualización
@@ -271,7 +304,7 @@ class TaskManagerApp(ctk.CTk):
             text="⚡ Auto-actualizar",
             command=self._toggle_auto_refresh
         )
-        self.auto_refresh_switch.grid(row=11, column=0, padx=20, pady=(5, 10))
+        self.auto_refresh_switch.grid(row=13, column=0, padx=20, pady=(5, 10))
         self.auto_refresh_switch.select()  # Activado por defecto
 
         # Info del sistema (placeholder)
@@ -281,7 +314,7 @@ class TaskManagerApp(ctk.CTk):
             font=ctk.CTkFont(size=11),
             text_color="gray"
         )
-        self.sys_info.grid(row=13, column=0, padx=20, pady=(0, 20))
+        self.sys_info.grid(row=15, column=0, padx=20, pady=(0, 20))
     
     def _display_system_info(self):
         """Mostrar información del sistema"""
@@ -535,6 +568,165 @@ class TaskManagerApp(ctk.CTk):
                 font=('Segoe UI', 10, 'bold'),
                 anchor='ne'
             )
+
+    def _update_ai_assistant(self, stats: Dict):
+        """Actualizar asistente IA y mostrar insights/recomendaciones"""
+        # Convertir ProcessInfo a dict para el asistente
+        processes = self.monitor.get_processes(limit=None)  # Todos los procesos
+        processes_data = []
+        total_ram = psutil.virtual_memory().total
+
+        for proc in processes:
+            mem_mb = proc.memory / (1024 ** 2)  # Convertir a MB
+            ram_percent = (proc.memory / total_ram) * 100 if total_ram > 0 else 0
+
+            processes_data.append({
+                'name': proc.name,
+                'pid': proc.pid,
+                'cpu': proc.cpu,
+                'memory': mem_mb,
+                'memory_percent': ram_percent
+            })
+
+        # Actualizar datos del asistente
+        self.ai_assistant.update_process_data(processes_data)
+
+        # Detectar anomalías
+        anomalies = self.ai_assistant.detect_anomalies(processes_data)
+
+        # Generar insights del sistema
+        insights = self.ai_assistant.generate_insights(
+            cpu_percent=stats['cpu_percent'],
+            ram_percent=stats['ram_percent'],
+            total_processes=stats['process_count']
+        )
+
+        # Actualizar UI del panel de Insights
+        self._display_ai_insights(anomalies, insights)
+
+    def _display_ai_insights(self, anomalies: List[ProcessAnomaly], insights: List[SystemInsight]):
+        """Actualizar el panel de insights con anomalías y recomendaciones"""
+        # Limpiar frame
+        for widget in self.insights_frame.winfo_children():
+            widget.destroy()
+
+        # Si no hay nada que mostrar
+        if not anomalies and not insights:
+            placeholder = ctk.CTkLabel(
+                self.insights_frame,
+                text="✅ Sistema funcionando bien\nSin anomalías detectadas",
+                font=ctk.CTkFont(size=11),
+                text_color="gray",
+                justify="center"
+            )
+            placeholder.pack(pady=15)
+            return
+
+        # Mostrar insights del sistema primero
+        for insight in insights[:2]:  # Máximo 2 insights del sistema
+            severity_colors = {
+                'critical': ('#dc2626', '#fef2f2'),
+                'warning': ('#f59e0b', '#fef3c7'),
+                'info': ('#3b82f6', '#eff6ff')
+            }
+            bg_color, text_bg = severity_colors.get(insight.severity, ('#6b7280', '#f3f4f6'))
+
+            insight_frame = ctk.CTkFrame(
+                self.insights_frame,
+                fg_color=text_bg if ctk.get_appearance_mode() == "Light" else "#1e293b",
+                corner_radius=6
+            )
+            insight_frame.pack(fill="x", padx=5, pady=3)
+
+            ctk.CTkLabel(
+                insight_frame,
+                text=f"{insight.icon} {insight.title}",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color=bg_color,
+                anchor="w"
+            ).pack(padx=8, pady=(5, 2), fill="x")
+
+            ctk.CTkLabel(
+                insight_frame,
+                text=insight.description,
+                font=ctk.CTkFont(size=10),
+                anchor="w",
+                wraplength=200
+            ).pack(padx=8, pady=(0, 5), fill="x")
+
+        # Mostrar anomalías detectadas
+        for anomaly in anomalies[:3]:  # Máximo 3 anomalías
+            severity_colors = {
+                'critical': '#dc2626',
+                'high': '#f59e0b',
+                'medium': '#3b82f6',
+                'low': '#6b7280'
+            }
+            color = severity_colors.get(anomaly.severity, '#6b7280')
+
+            anomaly_frame = ctk.CTkFrame(
+                self.insights_frame,
+                fg_color="#1e293b",
+                corner_radius=6,
+                border_width=1,
+                border_color=color
+            )
+            anomaly_frame.pack(fill="x", padx=5, pady=3)
+
+            # Título con icono y nombre del proceso
+            title_frame = ctk.CTkFrame(anomaly_frame, fg_color="transparent")
+            title_frame.pack(fill="x", padx=8, pady=(5, 2))
+
+            ctk.CTkLabel(
+                title_frame,
+                text=f"{anomaly.icon} {anomaly.process_name}",
+                font=ctk.CTkFont(size=10, weight="bold"),
+                text_color=color,
+                anchor="w"
+            ).pack(side="left")
+
+            # Recomendación
+            ctk.CTkLabel(
+                anomaly_frame,
+                text=anomaly.recommendation,
+                font=ctk.CTkFont(size=9),
+                anchor="w",
+                wraplength=200
+            ).pack(padx=8, pady=(0, 5), fill="x")
+
+            # Botón de acción (terminar proceso)
+            if anomaly.severity in ['critical', 'high']:
+                action_btn = ctk.CTkButton(
+                    anomaly_frame,
+                    text="Terminar Proceso",
+                    command=lambda pid=anomaly.pid: self._kill_process_from_ai(pid),
+                    fg_color=color,
+                    hover_color="#991b1b",
+                    height=24,
+                    font=ctk.CTkFont(size=9)
+                )
+                action_btn.pack(padx=8, pady=(0, 5), fill="x")
+
+    def _kill_process_from_ai(self, pid: int):
+        """Terminar proceso desde recomendación del asistente IA"""
+        try:
+            proc = psutil.Process(pid)
+            proc_name = proc.name()
+
+            # Confirmar con el usuario
+            if messagebox.askyesno(
+                "Confirmar",
+                f"¿Terminar el proceso '{proc_name}' (PID: {pid})?"
+            ):
+                proc.terminate()
+                messagebox.showinfo("Éxito", f"Proceso '{proc_name}' terminado")
+                self._manual_refresh()  # Actualizar vista
+        except psutil.NoSuchProcess:
+            messagebox.showerror("Error", "El proceso ya no existe")
+        except psutil.AccessDenied:
+            messagebox.showerror("Error", "Acceso denegado. Ejecuta como administrador")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo terminar el proceso: {e}")
 
     def _on_search_changed(self):
         """Manejar cambio en búsqueda con debouncing"""
