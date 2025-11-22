@@ -170,9 +170,9 @@ class TaskManagerApp(ctk.CTk):
         """Panel lateral con métricas"""
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, rowspan=3, sticky="nsew")
-        self.sidebar.grid_rowconfigure(15, weight=1)  # Panel de IA expandible
+        self.sidebar.grid_rowconfigure(14, weight=1)  # Panel de IA expandible
 
-        # Logo con emoji de SO
+        # Logo con emoji de SO (más compacto)
         os_emoji = {
             'Windows': '🪟',
             'Linux': '🐧',
@@ -182,146 +182,130 @@ class TaskManagerApp(ctk.CTk):
         self.logo_label = ctk.CTkLabel(
             self.sidebar,
             text=f"{os_emoji} Monitor",
-            font=ctk.CTkFont(size=22, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold")
         )
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 5))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(12, 2))
 
         self.subtitle = ctk.CTkLabel(
             self.sidebar,
             text=f"Sistema: {platform.system()}",
-            font=ctk.CTkFont(size=12)
+            font=ctk.CTkFont(size=11)
         )
-        self.subtitle.grid(row=1, column=0, padx=20, pady=(0, 10))
+        self.subtitle.grid(row=1, column=0, padx=20, pady=(0, 5))
 
-        # Toggle de tema (movido arriba)
+        # Toggle de tema (texto más corto)
         self.theme_switch = ctk.CTkSwitch(
             self.sidebar,
-            text="🌙 Tema Oscuro",
+            text="🌙 Tema",
             command=self._toggle_theme,
             onvalue="dark",
             offvalue="light"
         )
-        self.theme_switch.grid(row=2, column=0, padx=20, pady=5)
+        self.theme_switch.grid(row=2, column=0, padx=20, pady=2)
         self.theme_switch.select()  # Dark por defecto
 
-        # Toggle de auto-actualización (movido arriba)
+        # Toggle de auto-actualización (texto más corto)
         self.auto_refresh_switch = ctk.CTkSwitch(
             self.sidebar,
-            text="⚡ Auto-actualizar",
+            text="⚡ Auto-refresh",
             command=self._toggle_auto_refresh
         )
-        self.auto_refresh_switch.grid(row=3, column=0, padx=20, pady=5)
+        self.auto_refresh_switch.grid(row=3, column=0, padx=20, pady=2)
         self.auto_refresh_switch.select()  # Activado por defecto
 
-        # Info del sistema (movido arriba)
+        # Info del sistema (más compacto)
         self.sys_info = ctk.CTkLabel(
             self.sidebar,
             text="Cargando...",
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(size=9),
             text_color="gray"
         )
-        self.sys_info.grid(row=4, column=0, padx=20, pady=(5, 10))
+        self.sys_info.grid(row=4, column=0, padx=20, pady=(2, 5))
 
-        # Separador visual
-        separator = ctk.CTkFrame(self.sidebar, height=2, fg_color="#374151")
-        separator.grid(row=5, column=0, sticky="ew", padx=20, pady=10)
+        # Separador visual más delgado
+        separator = ctk.CTkFrame(self.sidebar, height=1, fg_color="#374151")
+        separator.grid(row=5, column=0, sticky="ew", padx=20, pady=5)
 
-        # CPU
+        # CPU (más compacto)
         self.cpu_label = ctk.CTkLabel(
             self.sidebar,
             text="CPU: 0%",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.cpu_label.grid(row=6, column=0, padx=20, pady=(5, 5))
+        self.cpu_label.grid(row=6, column=0, padx=20, pady=(2, 2))
 
         self.cpu_progress = ctk.CTkProgressBar(self.sidebar, width=210)
-        self.cpu_progress.grid(row=7, column=0, padx=20, pady=(0, 5))
+        self.cpu_progress.grid(row=7, column=0, padx=20, pady=(0, 2))
         self.cpu_progress.set(0)
 
-        # Gráfico de historial CPU
-        cpu_graph_container = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        cpu_graph_container.grid(row=8, column=0, padx=20, pady=(0, 10), sticky="ew")
-
-        ctk.CTkLabel(
-            cpu_graph_container,
-            text="Historial CPU",
-            font=ctk.CTkFont(size=10),
-            text_color="gray"
-        ).pack()
-
-        self.cpu_graph_frame = ctk.CTkFrame(cpu_graph_container, height=60, fg_color="#0f172a", corner_radius=8)
-        self.cpu_graph_frame.pack(fill="x", pady=(2, 0))
+        # Gráfico CPU (más pequeño: 40px, sin contenedor extra)
+        self.cpu_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#0f172a", corner_radius=6)
+        self.cpu_graph_frame.grid(row=8, column=0, padx=20, pady=(0, 5), sticky="ew")
         self.cpu_bars = []
 
-        # RAM
+        # RAM (más compacto)
         self.ram_label = ctk.CTkLabel(
             self.sidebar,
             text="RAM: 0%",
-            font=ctk.CTkFont(size=16, weight="bold")
-        )
-        self.ram_label.grid(row=9, column=0, padx=20, pady=(5, 5))
-
-        self.ram_progress = ctk.CTkProgressBar(self.sidebar, width=210)
-        self.ram_progress.grid(row=10, column=0, padx=20, pady=(0, 5))
-        self.ram_progress.set(0)
-
-        # Gráfico de historial RAM
-        ram_graph_container = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        ram_graph_container.grid(row=11, column=0, padx=20, pady=(0, 10), sticky="ew")
-
-        ctk.CTkLabel(
-            ram_graph_container,
-            text="Historial RAM",
-            font=ctk.CTkFont(size=10),
-            text_color="gray"
-        ).pack()
-
-        self.ram_graph_frame = ctk.CTkFrame(ram_graph_container, height=60, fg_color="#0f172a", corner_radius=8)
-        self.ram_graph_frame.pack(fill="x", pady=(2, 0))
-        self.ram_bars = []
-
-        # Contador de procesos
-        self.process_count_label = ctk.CTkLabel(
-            self.sidebar,
-            text="Procesos: 0",
             font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.process_count_label.grid(row=12, column=0, padx=20, pady=10)
+        self.ram_label.grid(row=9, column=0, padx=20, pady=(2, 2))
 
-        # Botón actualizar
+        self.ram_progress = ctk.CTkProgressBar(self.sidebar, width=210)
+        self.ram_progress.grid(row=10, column=0, padx=20, pady=(0, 2))
+        self.ram_progress.set(0)
+
+        # Gráfico RAM (más pequeño: 40px, sin contenedor extra)
+        self.ram_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#0f172a", corner_radius=6)
+        self.ram_graph_frame.grid(row=11, column=0, padx=20, pady=(0, 5), sticky="ew")
+        self.ram_bars = []
+
+        # Contador de procesos + Botón en un frame compacto
+        controls_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        controls_frame.grid(row=12, column=0, padx=20, pady=5, sticky="ew")
+
+        self.process_count_label = ctk.CTkLabel(
+            controls_frame,
+            text="Procesos: 0",
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        self.process_count_label.pack(pady=(0, 3))
+
         self.refresh_btn = ctk.CTkButton(
-            self.sidebar,
+            controls_frame,
             text="🔄 Actualizar",
             command=self._manual_refresh,
             fg_color="#2563eb",
-            hover_color="#1d4ed8"
+            hover_color="#1d4ed8",
+            height=26
         )
-        self.refresh_btn.grid(row=13, column=0, padx=20, pady=(5, 10))
+        self.refresh_btn.pack(fill="x")
 
-        # 🤖 PANEL DE ASISTENTE IA (expandible en la parte inferior)
+        # 🤖 PANEL DE ASISTENTE IA (ahora visible!)
         ai_header = ctk.CTkLabel(
             self.sidebar,
             text="🤖 Asistente IA",
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=13, weight="bold")
         )
-        ai_header.grid(row=14, column=0, padx=20, pady=(10, 5))
+        ai_header.grid(row=13, column=0, padx=20, pady=(5, 3))
 
-        # Frame scrollable para insights (se expande para llenar espacio restante)
+        # Frame scrollable para insights con altura mínima garantizada
         self.insights_frame = ctk.CTkScrollableFrame(
             self.sidebar,
             fg_color="#1a1f2e",
-            corner_radius=8
+            corner_radius=6,
+            height=120  # Altura mínima visible
         )
-        self.insights_frame.grid(row=15, column=0, padx=20, pady=(0, 15), sticky="nsew")
+        self.insights_frame.grid(row=14, column=0, padx=20, pady=(0, 10), sticky="nsew")
 
-        # Placeholder inicial
+        # Placeholder inicial (más compacto)
         self.insights_placeholder = ctk.CTkLabel(
             self.insights_frame,
-            text="Analizando patrones...",
-            font=ctk.CTkFont(size=11),
+            text="Analizando...",
+            font=ctk.CTkFont(size=10),
             text_color="gray"
         )
-        self.insights_placeholder.pack(pady=10)
+        self.insights_placeholder.pack(pady=8)
     
     def _display_system_info(self):
         """Mostrar información del sistema"""
@@ -493,15 +477,14 @@ class TaskManagerApp(ctk.CTk):
         if not data:
             return
 
-        # Canvas para dibujar
+        # Canvas para dibujar (altura dinámica según el frame)
         import tkinter as tk
         canvas = tk.Canvas(
             frame,
             bg='#0f172a',
-            highlightthickness=0,
-            height=60
+            highlightthickness=0
         )
-        canvas.pack(fill="both", expand=True, padx=5, pady=5)
+        canvas.pack(fill="both", expand=True, padx=3, pady=3)
 
         # Esperar a que el canvas se renderice
         frame.update_idletasks()
