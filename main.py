@@ -168,9 +168,18 @@ class TaskManagerApp(ctk.CTk):
 
     def _create_sidebar(self):
         """Panel lateral con métricas"""
-        self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
-        self.sidebar.grid(row=0, column=0, rowspan=3, sticky="nsew")
-        self.sidebar.grid_rowconfigure(14, weight=1)  # Panel de IA expandible
+        # Frame contenedor para el sidebar
+        sidebar_container = ctk.CTkFrame(self, width=250, corner_radius=0)
+        sidebar_container.grid(row=0, column=0, rowspan=3, sticky="nsew")
+        sidebar_container.grid_propagate(False)
+
+        # Sidebar scrollable
+        self.sidebar = ctk.CTkScrollableFrame(
+            sidebar_container,
+            width=230,
+            fg_color="transparent"
+        )
+        self.sidebar.pack(fill="both", expand=True)
 
         # Logo con emoji de SO (más compacto)
         os_emoji = {
@@ -238,12 +247,12 @@ class TaskManagerApp(ctk.CTk):
         self.cpu_progress.grid(row=7, column=0, padx=20, pady=(0, 2))
         self.cpu_progress.set(0)
 
-        # Gráfico CPU (más pequeño: 40px, sin contenedor extra)
-        self.cpu_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#0f172a", corner_radius=6)
-        self.cpu_graph_frame.grid(row=8, column=0, padx=20, pady=(0, 5), sticky="ew")
+        # Gráfico CPU (tamaño original: 60px)
+        self.cpu_graph_frame = ctk.CTkFrame(self.sidebar, height=60, fg_color="#0f172a", corner_radius=8)
+        self.cpu_graph_frame.grid(row=8, column=0, padx=20, pady=(0, 10), sticky="ew")
         self.cpu_bars = []
 
-        # RAM (más compacto)
+        # RAM
         self.ram_label = ctk.CTkLabel(
             self.sidebar,
             text="RAM: 0%",
@@ -255,9 +264,9 @@ class TaskManagerApp(ctk.CTk):
         self.ram_progress.grid(row=10, column=0, padx=20, pady=(0, 2))
         self.ram_progress.set(0)
 
-        # Gráfico RAM (más pequeño: 40px, sin contenedor extra)
-        self.ram_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#0f172a", corner_radius=6)
-        self.ram_graph_frame.grid(row=11, column=0, padx=20, pady=(0, 5), sticky="ew")
+        # Gráfico RAM (tamaño original: 60px)
+        self.ram_graph_frame = ctk.CTkFrame(self.sidebar, height=60, fg_color="#0f172a", corner_radius=8)
+        self.ram_graph_frame.grid(row=11, column=0, padx=20, pady=(0, 10), sticky="ew")
         self.ram_bars = []
 
         # Contador de procesos + Botón en un frame compacto
@@ -281,22 +290,22 @@ class TaskManagerApp(ctk.CTk):
         )
         self.refresh_btn.pack(fill="x")
 
-        # 🤖 PANEL DE ASISTENTE IA (ahora visible!)
+        # 🤖 PANEL DE ASISTENTE IA
         ai_header = ctk.CTkLabel(
             self.sidebar,
             text="🤖 Asistente IA",
-            font=ctk.CTkFont(size=13, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold")
         )
-        ai_header.grid(row=13, column=0, padx=20, pady=(5, 3))
+        ai_header.grid(row=13, column=0, padx=20, pady=(10, 5))
 
-        # Frame scrollable para insights con altura mínima garantizada
+        # Frame scrollable para insights
         self.insights_frame = ctk.CTkScrollableFrame(
             self.sidebar,
             fg_color="#1a1f2e",
-            corner_radius=6,
-            height=120  # Altura mínima visible
+            corner_radius=8,
+            height=150  # Altura fija
         )
-        self.insights_frame.grid(row=14, column=0, padx=20, pady=(0, 10), sticky="nsew")
+        self.insights_frame.grid(row=14, column=0, padx=20, pady=(0, 15), sticky="ew")
 
         # Placeholder inicial (más compacto)
         self.insights_placeholder = ctk.CTkLabel(
@@ -477,14 +486,15 @@ class TaskManagerApp(ctk.CTk):
         if not data:
             return
 
-        # Canvas para dibujar (altura dinámica según el frame)
+        # Canvas para dibujar
         import tkinter as tk
         canvas = tk.Canvas(
             frame,
             bg='#0f172a',
-            highlightthickness=0
+            highlightthickness=0,
+            height=60
         )
-        canvas.pack(fill="both", expand=True, padx=3, pady=3)
+        canvas.pack(fill="both", expand=True, padx=5, pady=5)
 
         # Esperar a que el canvas se renderice
         frame.update_idletasks()
