@@ -328,11 +328,11 @@ class TaskManagerApp(ctk.CTk):
 
         # ANCHOS para cada columna - Aprovechando todo el espacio
         self.column_widths = {
-            'proceso': 350,  # Más ancho para nombres largos
-            'pid': 100,
-            'cpu': 100,
-            'memoria': 120,
-            'ram': 120
+            'proceso': 400,  # Más ancho para nombres largos
+            'pid': 110,
+            'cpu': 110,
+            'memoria': 140,
+            'ram': 140
         }
 
         # Encabezados
