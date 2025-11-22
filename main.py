@@ -445,7 +445,7 @@ class TaskManagerApp(ctk.CTk):
         self._draw_mini_graph(self.ram_graph_frame, self.ram_history, "#10b981")
 
     def _draw_mini_graph(self, frame: ctk.CTkFrame, data: List[float], color: str):
-        """Dibujar gráfico mejorado con líneas de referencia"""
+        """Dibujar gráfico tipo Windows Task Manager - Línea limpia"""
         # Limpiar frame
         for widget in frame.winfo_children():
             widget.destroy()
@@ -463,7 +463,7 @@ class TaskManagerApp(ctk.CTk):
         )
         canvas.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # Esperar a que el canvas se renderice para obtener sus dimensiones
+        # Esperar a que el canvas se renderice
         frame.update_idletasks()
         width = canvas.winfo_width()
         height = canvas.winfo_height()
@@ -472,42 +472,67 @@ class TaskManagerApp(ctk.CTk):
             width = 200
             height = 50
 
-        # Líneas de referencia (25%, 50%, 75%)
-        for percent in [25, 50, 75]:
-            y = height - (height * percent / 100)
-            canvas.create_line(0, y, width, y, fill='#1e293b', width=1, dash=(2, 2))
+        # Cuadrícula de fondo sutil (como Windows Task Manager)
+        grid_color = '#1a1f2e'
+        # Líneas horizontales
+        for i in range(4):
+            y = (height / 4) * (i + 1)
+            canvas.create_line(0, y, width, y, fill=grid_color, width=1)
+        # Líneas verticales
+        for i in range(5):
+            x = (width / 6) * (i + 1)
+            canvas.create_line(x, 0, x, height, fill=grid_color, width=1)
 
-        # Dibujar datos como área rellena
+        # Dibujar línea limpia (estilo Windows)
         if len(data) > 1:
+            # Calcular puntos
             points = []
-            bar_width = width / len(data)
+            step = width / (len(data) - 1)
 
             for i, value in enumerate(data):
-                x = i * bar_width
+                x = i * step
                 y = height - (height * min(value, 100) / 100)
-                points.extend([x, y])
+                points.append((x, y))
 
-            # Completar el polígono
-            points.extend([width, height, 0, height])
+            # Dibujar línea continua suave
+            for i in range(len(points) - 1):
+                canvas.create_line(
+                    points[i][0], points[i][1],
+                    points[i + 1][0], points[i + 1][1],
+                    fill=color,
+                    width=2,
+                    smooth=True
+                )
 
-            # Área rellena con transparencia
+            # Opcional: Área rellena muy sutil debajo de la línea
+            fill_points = [(0, height)] + list(points) + [(width, height)]
+            flat_points = []
+            for point in fill_points:
+                flat_points.extend(point)
+
+            # Color más transparente para el relleno
+            fill_color_map = {
+                '#3b82f6': '#1e3a8a',  # Azul oscuro para CPU
+                '#10b981': '#064e3b'   # Verde oscuro para RAM
+            }
+            fill_color = fill_color_map.get(color, '#1e293b')
+
             canvas.create_polygon(
-                points,
-                fill=color,
-                outline=color,
-                width=2,
-                smooth=True
+                flat_points,
+                fill=fill_color,
+                outline='',
+                stipple='gray25'  # Patrón semi-transparente
             )
 
-        # Valor actual (último valor) con texto grande
+        # Valor actual en la esquina
         if data:
             current_value = data[-1]
             canvas.create_text(
-                width - 10,
-                10,
+                width - 5,
+                5,
                 text=f"{current_value:.1f}%",
-                fill=color,
-                font=('Arial', 10, 'bold'),
+                fill='white',
+                font=('Segoe UI', 10, 'bold'),
                 anchor='ne'
             )
 
