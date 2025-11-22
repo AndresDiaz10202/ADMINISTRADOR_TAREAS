@@ -540,6 +540,13 @@ class TaskManagerApp(ctk.CTk):
             height=40
         )
         proc_frame.grid(row=index, column=0, sticky="ew", pady=1)
+
+        # Configurar grid del frame con los mismos anchos que los headers
+        proc_frame.grid_columnconfigure(0, minsize=self.column_widths['proceso'], weight=0)
+        proc_frame.grid_columnconfigure(1, minsize=self.column_widths['pid'], weight=0)
+        proc_frame.grid_columnconfigure(2, minsize=self.column_widths['cpu'], weight=0)
+        proc_frame.grid_columnconfigure(3, minsize=self.column_widths['memoria'], weight=0)
+        proc_frame.grid_columnconfigure(4, minsize=self.column_widths['ram'], weight=0)
         proc_frame.grid_propagate(False)
 
         proc_frame.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
@@ -560,7 +567,7 @@ class TaskManagerApp(ctk.CTk):
             font=ctk.CTkFont(size=11),
             width=self.column_widths['proceso']
         )
-        name_label.place(x=2, y=0, height=40)
+        name_label.grid(row=0, column=0, sticky="w", padx=5)
         name_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         name_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
@@ -572,7 +579,7 @@ class TaskManagerApp(ctk.CTk):
             anchor="center",
             width=self.column_widths['pid']
         )
-        pid_label.place(x=self.column_widths['proceso'] + 4, y=0, height=40)
+        pid_label.grid(row=0, column=1, sticky="ew", padx=2)
         pid_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         pid_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
@@ -586,7 +593,7 @@ class TaskManagerApp(ctk.CTk):
             anchor="center",
             width=self.column_widths['cpu']
         )
-        cpu_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + 8, y=0, height=40)
+        cpu_label.grid(row=0, column=2, sticky="ew", padx=2)
         cpu_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         cpu_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
@@ -599,7 +606,7 @@ class TaskManagerApp(ctk.CTk):
             anchor="center",
             width=self.column_widths['memoria']
         )
-        mem_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + self.column_widths['cpu'] + 12, y=0, height=40)
+        mem_label.grid(row=0, column=3, sticky="ew", padx=2)
         mem_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         mem_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
@@ -613,7 +620,7 @@ class TaskManagerApp(ctk.CTk):
             anchor="center",
             width=self.column_widths['ram']
         )
-        ram_percent_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + self.column_widths['cpu'] + self.column_widths['memoria'] + 16, y=0, height=40)
+        ram_percent_label.grid(row=0, column=4, sticky="ew", padx=2)
         ram_percent_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         ram_percent_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
         
