@@ -305,35 +305,39 @@ class TaskManagerApp(ctk.CTk):
         self.table_frame.grid(row=1, column=1, sticky="nsew", padx=20, pady=(0, 20))
         self.table_frame.grid_columnconfigure(0, weight=1)
         self.table_frame.grid_rowconfigure(1, weight=1)
-        
+
+        # ANCHOS FIJOS para cada columna (en píxeles)
+        self.column_widths = {
+            'proceso': 280,
+            'pid': 80,
+            'cpu': 80,
+            'memoria': 100,
+            'ram': 100
+        }
+
         # Encabezados
         headers_frame = ctk.CTkFrame(self.table_frame)
         headers_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
-        
+
         headers = [
-            ("Proceso", "name", 3),
-            ("PID", "pid", 1),
-            ("CPU %", "cpu", 1),
-            ("Memoria (MB)", "memory", 1),
-            ("% RAM", "memory_percent", 1)
+            ("Proceso", "name", self.column_widths['proceso']),
+            ("PID", "pid", self.column_widths['pid']),
+            ("CPU %", "cpu", self.column_widths['cpu']),
+            ("Memoria (MB)", "memory", self.column_widths['memoria']),
+            ("% RAM", "memory_percent", self.column_widths['ram'])
         ]
 
-        headers_frame.grid_columnconfigure(0, weight=3)  # Proceso
-        headers_frame.grid_columnconfigure(1, weight=1)  # PID
-        headers_frame.grid_columnconfigure(2, weight=1)  # CPU
-        headers_frame.grid_columnconfigure(3, weight=1)  # Memoria
-        headers_frame.grid_columnconfigure(4, weight=1)  # % RAM
-        
-        for i, (text, col, weight) in enumerate(headers):
+        for i, (text, col, width) in enumerate(headers):
             btn = ctk.CTkButton(
                 headers_frame,
                 text=text,
                 command=lambda c=col: self._sort_by_column(c),
                 fg_color="#1e293b",
                 hover_color="#334155",
-                height=35
+                height=35,
+                width=width
             )
-            btn.grid(row=0, column=i, sticky="ew", padx=2)
+            btn.grid(row=0, column=i, padx=2)
             
         
         # Lista scrollable
@@ -536,82 +540,80 @@ class TaskManagerApp(ctk.CTk):
             height=40
         )
         proc_frame.grid(row=index, column=0, sticky="ew", pady=1)
-        
-        # MISMO GRID QUE LOS HEADERS
-        proc_frame.grid_columnconfigure(0, weight=3)  # Proceso - DEBE SER 3 PARA ALINEAR CON HEADERS
-        proc_frame.grid_columnconfigure(1, weight=1)  # PID
-        proc_frame.grid_columnconfigure(2, weight=1)  # CPU
-        proc_frame.grid_columnconfigure(3, weight=1)  # Memoria
-        proc_frame.grid_columnconfigure(4, weight=1)  # % RAM
         proc_frame.grid_propagate(False)
-        
+
         proc_frame.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         proc_frame.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
-        
+
         total_ram = psutil.virtual_memory().total
         # Calcular porcentaje real
         ram_percent = (proc.memory / total_ram) * 100 if total_ram > 0 else 0
         # Si es menor a 0.01%, mostrar al menos 0.01% (para que no sea 0.00%)
         if ram_percent > 0 and ram_percent < 0.01:
             ram_percent = 0.01
-        
-        # COLUMNA 0 - NOMBRE (izquierda)
+
+        # COLUMNA 0 - NOMBRE (izquierda) - ANCHO FIJO
         name_label = ctk.CTkLabel(
             proc_frame,
-            text=proc.name[:40],
+            text=proc.name[:35],  # Truncar si es muy largo
             anchor="w",
-            font=ctk.CTkFont(size=11)
+            font=ctk.CTkFont(size=11),
+            width=self.column_widths['proceso']
         )
-        name_label.grid(row=0, column=0, sticky="ew", padx=2)
+        name_label.place(x=2, y=0, height=40)
         name_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         name_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
-        # COLUMNA 1 - PID (centrado)
+        # COLUMNA 1 - PID (centrado) - ANCHO FIJO
         pid_label = ctk.CTkLabel(
             proc_frame,
             text=str(proc.pid),
             font=ctk.CTkFont(size=11),
-            anchor="center"
+            anchor="center",
+            width=self.column_widths['pid']
         )
-        pid_label.grid(row=0, column=1, sticky="ew", padx=2)
+        pid_label.place(x=self.column_widths['proceso'] + 4, y=0, height=40)
         pid_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         pid_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
-        # COLUMNA 2 - CPU (centrado)
+        # COLUMNA 2 - CPU (centrado) - ANCHO FIJO
         cpu_color = "#10b981" if proc.cpu < 10 else "#ef4444" if proc.cpu > 50 else "#f59e0b"
         cpu_label = ctk.CTkLabel(
             proc_frame,
             text=f"{proc.cpu:.1f}%",
             text_color=cpu_color,
             font=ctk.CTkFont(size=11),
-            anchor="center"
+            anchor="center",
+            width=self.column_widths['cpu']
         )
-        cpu_label.grid(row=0, column=2, sticky="ew", padx=2)
+        cpu_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + 8, y=0, height=40)
         cpu_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         cpu_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
-        # COLUMNA 3 - MEMORIA MB (centrado)
+        # COLUMNA 3 - MEMORIA MB (centrado) - ANCHO FIJO
         mem_mb = proc.memory / (1024 ** 2)
         mem_label = ctk.CTkLabel(
             proc_frame,
             text=f"{mem_mb:.1f}",
             font=ctk.CTkFont(size=11),
-            anchor="center"
+            anchor="center",
+            width=self.column_widths['memoria']
         )
-        mem_label.grid(row=0, column=3, sticky="ew", padx=2)
+        mem_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + self.column_widths['cpu'] + 12, y=0, height=40)
         mem_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         mem_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
 
-        # COLUMNA 4 - RAM % (centrado)
+        # COLUMNA 4 - RAM % (centrado) - ANCHO FIJO
         ram_color = "#10b981" if ram_percent < 1 else "#f59e0b" if ram_percent < 5 else "#ef4444"
         ram_percent_label = ctk.CTkLabel(
             proc_frame,
-            text=f"{ram_percent:.3f}%" if ram_percent < 1 else f"{ram_percent:.2f}%",  # 3 decimales si es pequeño
+            text=f"{ram_percent:.3f}%" if ram_percent < 1 else f"{ram_percent:.2f}%",
             text_color=ram_color,
             font=ctk.CTkFont(size=11),
-            anchor="center"
+            anchor="center",
+            width=self.column_widths['ram']
         )
-        ram_percent_label.grid(row=0, column=4, sticky="ew", padx=2)
+        ram_percent_label.place(x=self.column_widths['proceso'] + self.column_widths['pid'] + self.column_widths['cpu'] + self.column_widths['memoria'] + 16, y=0, height=40)
         ram_percent_label.bind("<Button-1>", lambda e, p=proc.pid: self._select_process(p))
         ram_percent_label.bind("<Double-Button-1>", lambda e, p=proc: self._show_process_details(p))
         
