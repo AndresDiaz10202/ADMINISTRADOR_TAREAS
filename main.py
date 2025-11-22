@@ -194,9 +194,19 @@ class TaskManagerApp(ctk.CTk):
         self.cpu_progress.grid(row=3, column=0, padx=20, pady=(0, 5))
         self.cpu_progress.set(0)
 
-        # Mini gráfico de historial CPU
-        self.cpu_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#1e293b")
-        self.cpu_graph_frame.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="ew")
+        # Gráfico de historial CPU mejorado
+        cpu_graph_container = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        cpu_graph_container.grid(row=4, column=0, padx=20, pady=(0, 10), sticky="ew")
+
+        ctk.CTkLabel(
+            cpu_graph_container,
+            text="Historial CPU",
+            font=ctk.CTkFont(size=10),
+            text_color="gray"
+        ).pack()
+
+        self.cpu_graph_frame = ctk.CTkFrame(cpu_graph_container, height=60, fg_color="#0f172a", corner_radius=8)
+        self.cpu_graph_frame.pack(fill="x", pady=(2, 0))
         self.cpu_bars = []
 
         # RAM
@@ -211,9 +221,19 @@ class TaskManagerApp(ctk.CTk):
         self.ram_progress.grid(row=6, column=0, padx=20, pady=(0, 5))
         self.ram_progress.set(0)
 
-        # Mini gráfico de historial RAM
-        self.ram_graph_frame = ctk.CTkFrame(self.sidebar, height=40, fg_color="#1e293b")
-        self.ram_graph_frame.grid(row=7, column=0, padx=20, pady=(0, 20), sticky="ew")
+        # Gráfico de historial RAM mejorado
+        ram_graph_container = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        ram_graph_container.grid(row=7, column=0, padx=20, pady=(0, 20), sticky="ew")
+
+        ctk.CTkLabel(
+            ram_graph_container,
+            text="Historial RAM",
+            font=ctk.CTkFont(size=10),
+            text_color="gray"
+        ).pack()
+
+        self.ram_graph_frame = ctk.CTkFrame(ram_graph_container, height=60, fg_color="#0f172a", corner_radius=8)
+        self.ram_graph_frame.pack(fill="x", pady=(2, 0))
         self.ram_bars = []
         
         # Contador de procesos
@@ -306,13 +326,13 @@ class TaskManagerApp(ctk.CTk):
         self.table_frame.grid_columnconfigure(0, weight=1)
         self.table_frame.grid_rowconfigure(1, weight=1)
 
-        # ANCHOS FIJOS para cada columna (en píxeles)
+        # ANCHOS para cada columna - Aprovechando todo el espacio
         self.column_widths = {
-            'proceso': 280,
-            'pid': 80,
-            'cpu': 80,
-            'memoria': 100,
-            'ram': 100
+            'proceso': 350,  # Más ancho para nombres largos
+            'pid': 100,
+            'cpu': 100,
+            'memoria': 120,
+            'ram': 120
         }
 
         # Encabezados
@@ -425,7 +445,7 @@ class TaskManagerApp(ctk.CTk):
         self._draw_mini_graph(self.ram_graph_frame, self.ram_history, "#10b981")
 
     def _draw_mini_graph(self, frame: ctk.CTkFrame, data: List[float], color: str):
-        """Dibujar mini gráfico de barras"""
+        """Dibujar gráfico mejorado con líneas de referencia"""
         # Limpiar frame
         for widget in frame.winfo_children():
             widget.destroy()
@@ -433,21 +453,63 @@ class TaskManagerApp(ctk.CTk):
         if not data:
             return
 
-        # Configurar grid
-        frame.grid_columnconfigure(tuple(range(len(data))), weight=1)
+        # Canvas para dibujar
+        import tkinter as tk
+        canvas = tk.Canvas(
+            frame,
+            bg='#0f172a',
+            highlightthickness=0,
+            height=60
+        )
+        canvas.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # Crear barras
-        for i, value in enumerate(data):
-            bar_height = max(2, int((value / 100) * 35))  # Max 35px de altura
-            bar = ctk.CTkFrame(
-                frame,
-                width=6,
-                height=bar_height,
-                fg_color=color,
-                corner_radius=1
+        # Esperar a que el canvas se renderice para obtener sus dimensiones
+        frame.update_idletasks()
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+
+        if width <= 1 or height <= 1:
+            width = 200
+            height = 50
+
+        # Líneas de referencia (25%, 50%, 75%)
+        for percent in [25, 50, 75]:
+            y = height - (height * percent / 100)
+            canvas.create_line(0, y, width, y, fill='#1e293b', width=1, dash=(2, 2))
+
+        # Dibujar datos como área rellena
+        if len(data) > 1:
+            points = []
+            bar_width = width / len(data)
+
+            for i, value in enumerate(data):
+                x = i * bar_width
+                y = height - (height * min(value, 100) / 100)
+                points.extend([x, y])
+
+            # Completar el polígono
+            points.extend([width, height, 0, height])
+
+            # Área rellena con transparencia
+            canvas.create_polygon(
+                points,
+                fill=color,
+                outline=color,
+                width=2,
+                smooth=True
             )
-            bar.grid(row=0, column=i, sticky="s", padx=1, pady=2)
-            bar.grid_propagate(False)
+
+        # Valor actual (último valor) con texto grande
+        if data:
+            current_value = data[-1]
+            canvas.create_text(
+                width - 10,
+                10,
+                text=f"{current_value:.1f}%",
+                fill=color,
+                font=('Arial', 10, 'bold'),
+                anchor='ne'
+            )
 
     def _on_search_changed(self):
         """Manejar cambio en búsqueda con debouncing"""
