@@ -50,7 +50,12 @@ class TaskManagerApp(ctk.CTk):
 
         # Control de auto-actualización
         self.auto_refresh_enabled = True
-        
+
+        # Almacenamiento de datos del Asistente IA
+        self.current_anomalies = []
+        self.current_insights = []
+        self.ai_window = None  # Ventana flotante del asistente
+
         # Grid principal
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -166,7 +171,7 @@ class TaskManagerApp(ctk.CTk):
         """Panel lateral con métricas"""
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, rowspan=3, sticky="nsew")
-        self.sidebar.grid_rowconfigure(14, weight=1)  # Actualizado para nueva fila
+        self.sidebar.grid_rowconfigure(12, weight=1)
         
         # Logo con emoji de SO
         os_emoji = {
@@ -243,39 +248,25 @@ class TaskManagerApp(ctk.CTk):
         self.ram_graph_frame.pack(fill="x", pady=(2, 0))
         self.ram_bars = []
 
-        # 🤖 PANEL DE ASISTENTE IA
-        ai_header = ctk.CTkLabel(
-            self.sidebar,
-            text="🤖 Asistente IA",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        ai_header.grid(row=8, column=0, padx=20, pady=(15, 5))
-
-        # Frame scrollable para insights y recomendaciones
-        self.insights_frame = ctk.CTkScrollableFrame(
-            self.sidebar,
-            height=150,
-            fg_color="#1a1f2e",
-            corner_radius=8
-        )
-        self.insights_frame.grid(row=9, column=0, padx=20, pady=(0, 10), sticky="ew")
-
-        # Placeholder inicial
-        self.insights_placeholder = ctk.CTkLabel(
-            self.insights_frame,
-            text="Analizando patrones...",
-            font=ctk.CTkFont(size=11),
-            text_color="gray"
-        )
-        self.insights_placeholder.pack(pady=10)
-
         # Contador de procesos
         self.process_count_label = ctk.CTkLabel(
             self.sidebar,
             text="Procesos: 0",
             font=ctk.CTkFont(size=14, weight="bold")
         )
-        self.process_count_label.grid(row=10, column=0, padx=20, pady=10)
+        self.process_count_label.grid(row=8, column=0, padx=20, pady=10)
+
+        # 🤖 Botón de Asistente IA (Sistema de Notificaciones)
+        self.ai_notifications_btn = ctk.CTkButton(
+            self.sidebar,
+            text="🤖 Asistente IA",
+            command=self._open_ai_insights_window,
+            fg_color="#6366f1",
+            hover_color="#4f46e5",
+            height=32,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        self.ai_notifications_btn.grid(row=9, column=0, padx=20, pady=(5, 10))
 
         # Botón actualizar
         self.refresh_btn = ctk.CTkButton(
@@ -285,7 +276,7 @@ class TaskManagerApp(ctk.CTk):
             fg_color="#2563eb",
             hover_color="#1d4ed8"
         )
-        self.refresh_btn.grid(row=11, column=0, padx=20, pady=10)
+        self.refresh_btn.grid(row=10, column=0, padx=20, pady=10)
 
         # Toggle de tema
         self.theme_switch = ctk.CTkSwitch(
@@ -295,7 +286,7 @@ class TaskManagerApp(ctk.CTk):
             onvalue="dark",
             offvalue="light"
         )
-        self.theme_switch.grid(row=12, column=0, padx=20, pady=(10, 5))
+        self.theme_switch.grid(row=11, column=0, padx=20, pady=(10, 5))
         self.theme_switch.select()  # Dark por defecto
 
         # Toggle de auto-actualización
@@ -304,7 +295,7 @@ class TaskManagerApp(ctk.CTk):
             text="⚡ Auto-actualizar",
             command=self._toggle_auto_refresh
         )
-        self.auto_refresh_switch.grid(row=13, column=0, padx=20, pady=(5, 10))
+        self.auto_refresh_switch.grid(row=12, column=0, padx=20, pady=(5, 10))
         self.auto_refresh_switch.select()  # Activado por defecto
 
         # Info del sistema (placeholder)
@@ -314,7 +305,7 @@ class TaskManagerApp(ctk.CTk):
             font=ctk.CTkFont(size=11),
             text_color="gray"
         )
-        self.sys_info.grid(row=15, column=0, padx=20, pady=(0, 20))
+        self.sys_info.grid(row=13, column=0, padx=20, pady=(0, 20))
     
     def _display_system_info(self):
         """Mostrar información del sistema"""
@@ -605,107 +596,254 @@ class TaskManagerApp(ctk.CTk):
         self._display_ai_insights(anomalies, insights)
 
     def _display_ai_insights(self, anomalies: List[ProcessAnomaly], insights: List[SystemInsight]):
-        """Actualizar el panel de insights con anomalías y recomendaciones"""
-        # Limpiar frame
-        for widget in self.insights_frame.winfo_children():
-            widget.destroy()
+        """Guardar datos del asistente IA y actualizar contador de notificaciones"""
+        # Guardar datos actuales
+        self.current_anomalies = anomalies
+        self.current_insights = insights
 
-        # Si no hay nada que mostrar
-        if not anomalies and not insights:
-            placeholder = ctk.CTkLabel(
-                self.insights_frame,
-                text="✅ Sistema funcionando bien\nSin anomalías detectadas",
-                font=ctk.CTkFont(size=11),
-                text_color="gray",
-                justify="center"
-            )
-            placeholder.pack(pady=15)
+        # Contar total de alertas
+        total_alerts = len(anomalies) + len(insights)
+
+        # Actualizar texto del botón con contador
+        if total_alerts == 0:
+            self.ai_notifications_btn.configure(text="🤖 Asistente IA ✅")
+        else:
+            # Contar alertas críticas/altas
+            critical_count = sum(1 for a in anomalies if a.severity in ['critical', 'high'])
+            critical_count += sum(1 for i in insights if i.severity in ['critical', 'warning'])
+
+            if critical_count > 0:
+                self.ai_notifications_btn.configure(
+                    text=f"🤖 Asistente IA ({critical_count} ⚠️)"
+                )
+            else:
+                self.ai_notifications_btn.configure(
+                    text=f"🤖 Asistente IA ({total_alerts})"
+                )
+
+        # Si la ventana ya está abierta, actualizarla
+        if self.ai_window is not None and self.ai_window.winfo_exists():
+            self._refresh_ai_window_content()
+
+    def _open_ai_insights_window(self):
+        """Abrir ventana flotante con insights del Asistente IA"""
+        # Si la ventana ya existe y está abierta, solo traerla al frente
+        if self.ai_window is not None and self.ai_window.winfo_exists():
+            self.ai_window.lift()
+            self.ai_window.focus()
             return
 
-        # Mostrar insights del sistema primero
-        for insight in insights[:2]:  # Máximo 2 insights del sistema
-            severity_colors = {
-                'critical': ('#dc2626', '#fef2f2'),
-                'warning': ('#f59e0b', '#fef3c7'),
-                'info': ('#3b82f6', '#eff6ff')
-            }
-            bg_color, text_bg = severity_colors.get(insight.severity, ('#6b7280', '#f3f4f6'))
+        # Crear nueva ventana
+        self.ai_window = ctk.CTkToplevel(self)
+        self.ai_window.title("🤖 Asistente IA - Análisis y Recomendaciones")
+        self.ai_window.geometry("500x600")
+        self.ai_window.resizable(True, True)
 
-            insight_frame = ctk.CTkFrame(
-                self.insights_frame,
-                fg_color=text_bg if ctk.get_appearance_mode() == "Light" else "#1e293b",
-                corner_radius=6
-            )
-            insight_frame.pack(fill="x", padx=5, pady=3)
+        # Header
+        header_frame = ctk.CTkFrame(self.ai_window, fg_color="#6366f1", corner_radius=0)
+        header_frame.pack(fill="x", padx=0, pady=0)
 
+        ctk.CTkLabel(
+            header_frame,
+            text="🤖 Asistente IA",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="white"
+        ).pack(pady=15)
+
+        ctk.CTkLabel(
+            header_frame,
+            text="Análisis inteligente de procesos y sistema",
+            font=ctk.CTkFont(size=12),
+            text_color="#e0e7ff"
+        ).pack(pady=(0, 15))
+
+        # Frame scrollable para contenido
+        self.ai_window_content = ctk.CTkScrollableFrame(
+            self.ai_window,
+            fg_color="transparent"
+        )
+        self.ai_window_content.pack(fill="both", expand=True, padx=15, pady=15)
+
+        # Llenar contenido
+        self._refresh_ai_window_content()
+
+        # Botón de cerrar
+        ctk.CTkButton(
+            self.ai_window,
+            text="Cerrar",
+            command=self.ai_window.destroy,
+            fg_color="#6b7280",
+            hover_color="#4b5563"
+        ).pack(pady=10)
+
+    def _refresh_ai_window_content(self):
+        """Actualizar contenido de la ventana de IA"""
+        if self.ai_window is None or not self.ai_window.winfo_exists():
+            return
+
+        # Limpiar contenido
+        for widget in self.ai_window_content.winfo_children():
+            widget.destroy()
+
+        # Si no hay alertas
+        if not self.current_anomalies and not self.current_insights:
             ctk.CTkLabel(
-                insight_frame,
-                text=f"{insight.icon} {insight.title}",
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color=bg_color,
+                self.ai_window_content,
+                text="✅ Sistema funcionando perfectamente\n\nNo se detectaron anomalías ni problemas.",
+                font=ctk.CTkFont(size=14),
+                text_color="gray",
+                justify="center"
+            ).pack(pady=50)
+            return
+
+        # Mostrar insights del sistema
+        if self.current_insights:
+            section_label = ctk.CTkLabel(
+                self.ai_window_content,
+                text="📊 Estado del Sistema",
+                font=ctk.CTkFont(size=16, weight="bold"),
                 anchor="w"
-            ).pack(padx=8, pady=(5, 2), fill="x")
+            )
+            section_label.pack(fill="x", pady=(5, 10))
 
-            ctk.CTkLabel(
-                insight_frame,
-                text=insight.description,
-                font=ctk.CTkFont(size=10),
-                anchor="w",
-                wraplength=200
-            ).pack(padx=8, pady=(0, 5), fill="x")
+            for insight in self.current_insights:
+                self._create_insight_card(self.ai_window_content, insight)
 
         # Mostrar anomalías detectadas
-        for anomaly in anomalies[:3]:  # Máximo 3 anomalías
-            severity_colors = {
-                'critical': '#dc2626',
-                'high': '#f59e0b',
-                'medium': '#3b82f6',
-                'low': '#6b7280'
-            }
-            color = severity_colors.get(anomaly.severity, '#6b7280')
-
-            anomaly_frame = ctk.CTkFrame(
-                self.insights_frame,
-                fg_color="#1e293b",
-                corner_radius=6,
-                border_width=1,
-                border_color=color
-            )
-            anomaly_frame.pack(fill="x", padx=5, pady=3)
-
-            # Título con icono y nombre del proceso
-            title_frame = ctk.CTkFrame(anomaly_frame, fg_color="transparent")
-            title_frame.pack(fill="x", padx=8, pady=(5, 2))
-
-            ctk.CTkLabel(
-                title_frame,
-                text=f"{anomaly.icon} {anomaly.process_name}",
-                font=ctk.CTkFont(size=10, weight="bold"),
-                text_color=color,
+        if self.current_anomalies:
+            section_label = ctk.CTkLabel(
+                self.ai_window_content,
+                text="⚠️ Anomalías Detectadas",
+                font=ctk.CTkFont(size=16, weight="bold"),
                 anchor="w"
+            )
+            section_label.pack(fill="x", pady=(20, 10))
+
+            for anomaly in self.current_anomalies:
+                self._create_anomaly_card(self.ai_window_content, anomaly)
+
+    def _create_insight_card(self, parent, insight: SystemInsight):
+        """Crear tarjeta visual para un insight"""
+        severity_colors = {
+            'critical': ('#dc2626', '#fef2f2'),
+            'warning': ('#f59e0b', '#fef3c7'),
+            'info': ('#3b82f6', '#eff6ff')
+        }
+        color, bg = severity_colors.get(insight.severity, ('#6b7280', '#f3f4f6'))
+
+        card = ctk.CTkFrame(
+            parent,
+            fg_color=bg if ctk.get_appearance_mode() == "Light" else "#1e293b",
+            corner_radius=8,
+            border_width=2,
+            border_color=color
+        )
+        card.pack(fill="x", pady=5)
+
+        # Título
+        ctk.CTkLabel(
+            card,
+            text=f"{insight.icon} {insight.title}",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color=color,
+            anchor="w"
+        ).pack(padx=15, pady=(10, 5), fill="x")
+
+        # Descripción
+        ctk.CTkLabel(
+            card,
+            text=insight.description,
+            font=ctk.CTkFont(size=11),
+            anchor="w",
+            wraplength=450
+        ).pack(padx=15, pady=(0, 10), fill="x")
+
+    def _create_anomaly_card(self, parent, anomaly: ProcessAnomaly):
+        """Crear tarjeta visual para una anomalía"""
+        severity_colors = {
+            'critical': '#dc2626',
+            'high': '#f59e0b',
+            'medium': '#3b82f6',
+            'low': '#6b7280'
+        }
+        color = severity_colors.get(anomaly.severity, '#6b7280')
+
+        card = ctk.CTkFrame(
+            parent,
+            fg_color="#1e293b",
+            corner_radius=8,
+            border_width=2,
+            border_color=color
+        )
+        card.pack(fill="x", pady=5)
+
+        # Encabezado con proceso y severidad
+        header = ctk.CTkFrame(card, fg_color="transparent")
+        header.pack(fill="x", padx=15, pady=(10, 5))
+
+        ctk.CTkLabel(
+            header,
+            text=f"{anomaly.icon} {anomaly.process_name}",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color=color,
+            anchor="w"
+        ).pack(side="left")
+
+        ctk.CTkLabel(
+            header,
+            text=anomaly.severity.upper(),
+            font=ctk.CTkFont(size=9, weight="bold"),
+            text_color="white",
+            fg_color=color,
+            corner_radius=4,
+            padx=8,
+            pady=2
+        ).pack(side="right")
+
+        # Métricas
+        metrics = ctk.CTkFrame(card, fg_color="transparent")
+        metrics.pack(fill="x", padx=15, pady=5)
+
+        ctk.CTkLabel(
+            metrics,
+            text=f"Actual: {anomaly.current_value:.1f} | Normal: {anomaly.baseline_value:.1f}",
+            font=ctk.CTkFont(size=10),
+            text_color="gray"
+        ).pack(anchor="w")
+
+        # Recomendación
+        ctk.CTkLabel(
+            card,
+            text=anomaly.recommendation,
+            font=ctk.CTkFont(size=11),
+            anchor="w",
+            wraplength=450
+        ).pack(padx=15, pady=(5, 10), fill="x")
+
+        # Botones de acción
+        if anomaly.severity in ['critical', 'high']:
+            actions = ctk.CTkFrame(card, fg_color="transparent")
+            actions.pack(fill="x", padx=15, pady=(0, 10))
+
+            ctk.CTkButton(
+                actions,
+                text="Terminar Proceso",
+                command=lambda: self._kill_process_from_ai(anomaly.pid),
+                fg_color=color,
+                hover_color="#991b1b",
+                height=28,
+                font=ctk.CTkFont(size=11)
+            ).pack(side="left", padx=(0, 5))
+
+            ctk.CTkButton(
+                actions,
+                text="Ignorar",
+                command=lambda: None,  # Placeholder
+                fg_color="#6b7280",
+                hover_color="#4b5563",
+                height=28,
+                font=ctk.CTkFont(size=11)
             ).pack(side="left")
-
-            # Recomendación
-            ctk.CTkLabel(
-                anomaly_frame,
-                text=anomaly.recommendation,
-                font=ctk.CTkFont(size=9),
-                anchor="w",
-                wraplength=200
-            ).pack(padx=8, pady=(0, 5), fill="x")
-
-            # Botón de acción (terminar proceso)
-            if anomaly.severity in ['critical', 'high']:
-                action_btn = ctk.CTkButton(
-                    anomaly_frame,
-                    text="Terminar Proceso",
-                    command=lambda pid=anomaly.pid: self._kill_process_from_ai(pid),
-                    fg_color=color,
-                    hover_color="#991b1b",
-                    height=24,
-                    font=ctk.CTkFont(size=9)
-                )
-                action_btn.pack(padx=8, pady=(0, 5), fill="x")
 
     def _kill_process_from_ai(self, pid: int):
         """Terminar proceso desde recomendación del asistente IA"""
@@ -721,6 +859,9 @@ class TaskManagerApp(ctk.CTk):
                 proc.terminate()
                 messagebox.showinfo("Éxito", f"Proceso '{proc_name}' terminado")
                 self._manual_refresh()  # Actualizar vista
+                # Cerrar ventana de IA si está abierta
+                if self.ai_window is not None and self.ai_window.winfo_exists():
+                    self.ai_window.destroy()
         except psutil.NoSuchProcess:
             messagebox.showerror("Error", "El proceso ya no existe")
         except psutil.AccessDenied:
